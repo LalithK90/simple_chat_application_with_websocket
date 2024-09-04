@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Home</title>
+</head>
+<body>
+<nav data-th-replace="~{fragments/navBar :: navBarFragment}"></nav>
+<div class="container">
+    <h1>Welcome, <span th:text="${#authentication.name}">User</span>!</h1>
+    <a th:href="@{/perform_logout}">Logout</a>
+</div>
+</body>
+</html>

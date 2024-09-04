@@ -1,0 +1,27 @@
+<div data-th-fragment="navBarFragment">
+    <div data-th-replace="~{fragments/header :: headerFragment}"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Forum</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/chat"><i class="fas fa-comments"></i> Chat</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/perform_logout" tabindex="-1" aria-disabled="true">Log Out</a>
+                    </li>
+                    <li class="nav-item" data-sec-authentication="name">
+                        <span>Welcome, [[${#authentication.name}]]</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</div>

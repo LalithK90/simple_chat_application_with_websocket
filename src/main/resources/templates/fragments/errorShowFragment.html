@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<!--errors display-->
+<div class="mb-3 mt-2 bg-warning text-danger" data-th-fragment="errorShowFragment">
+    <label data-th-if="${#fields.hasErrors('*')}" data-th-text="'Errors: '"
+           id="errorLabel">Errors: </label>
+    <ul>
+        <li class="error" data-th-each="err : ${#fields.errors('*')}" data-th-text="${err}"
+            id="error"></li>
+    </ul>
+</div>
+</body>
+</html>
