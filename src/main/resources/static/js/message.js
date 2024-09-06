@@ -2,6 +2,8 @@ let stompClient = null;
 let currentUser = null;
 let choseUser = null;
 let secretKey = null;
+
+
 getData();
 
 function getData() {
@@ -23,7 +25,6 @@ function connect() {
     let socket = new SockJS('/chat');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
-        console.log('Connected: ' + frame);
 
         // Subscribe to user's private messages
         stompClient.subscribe('/user/queue/messages', function (message) {
@@ -39,6 +40,8 @@ function connect() {
         stompClient.subscribe('/topic/activeUsers', function (message) {
             updateActiveUsers(JSON.parse(message.body));
         });
+    }, function (error) {
+        console.error('STOMP connection error:', error);
     });
 }
 
@@ -47,28 +50,28 @@ function updateActiveUsers(users) {
     $('#activeUsers').empty();
     users.forEach(function (user) {
         if (user !== currentUser) {
-            $('#activeUsers').append('<li class="list-group-item"> <i class="fas fa-user mx-2"></i><span onclick="selectUser(this)">' + user + '</span></li>');
+            $('#activeUsers').append(`<div class="scroll-item p-2 m-2 rounded bg-opacity-50" onclick="selectUser(this)"><i class="fas fa-user mx-2"></i><span>${user}</span></div>`);
         }
     });
 }
 
 function selectUser(element) {
+    document.querySelectorAll('.scroll-item')
+        .forEach(item => {
+            item.classList.remove('bg-primary');
+        });
+    element.classList.add('bg-primary');
     choseUser = element.textContent || element.innerText;
-    document.getElementById('selectedUser').textContent = 'Chatting with: ' + choseUser;
+    console.log(`${choseUser}`)
+    $('#selectedUser').html('<span> Chatting with: <em>' + choseUser + '</em></span>');
 }
 
 // Send a message
-function sendMessage() {
-    let messageContent = $('#messageInput').val();
-    messageContent = encryptMessage(messageContent);
-
+function sendMessage(message) {
+    let messageContent = encryptMessage(message.content);
     if (messageContent.trim() !== '' && choseUser) {
-        let message = {
-            sender: currentUser,
-            content: messageContent,
-            timestamp: new Date()
-        };
-        stompClient.send("/app/chat.private." + choseUser, {}, JSON.stringify(message));
+        message.content = messageContent;
+        stompClient.send("/app/chat.private." + message.recipient, {}, JSON.stringify(message));
         $('#messageInput').val('');
     } else {
         swal({
@@ -84,11 +87,59 @@ function sendMessage() {
 // Display a received message
 function showMessage(message) {
     let decryptedContent = decryptMessage(message.content);
-    console.log(decryptedContent)
-    let messageElement = '<div><strong>' + message.sender + ':</strong> ' + decryptedContent + ' at ' + dateTimeConvert(message.timestamp) + '</div>';
-    $('#chatArea').append(messageElement);
-    $('#chatArea').scrollTop($('#chatArea')[0].scrollHeight);
+    let chatArea = $('#chatArea');
+    let messageElement = `<div> 
+                                    <p>
+                                      <strong> 
+                                        <span onclick="selectUser(this)">${message.sender}</span>:
+                                      </strong> ${decryptedContent} at <em>${dateTimeConvert(message.timestamp)}</em>
+                                      <button data-sender="${message.sender}" data-parent="${message.number}" class="btn btn-sm btn-outline-info bg-opacity-75" onclick="replyToMessage(this)">
+                                         <i class="fas fa-reply"></i>
+                                      </button>
+                                    </p>
+                                </div>`;
+    chatArea.append(messageElement);
+    chatArea.scrollTop(chatArea[0].scrollHeight);
     choseUser = message.sender;
+}
+
+function replyToMessage(button) {
+    let sender = button.getAttribute('data-sender');
+    let parentMessage = button.getAttribute('data-parent');
+    let form = document.createElement('form');
+    form.id = 'replyForm';
+    form.innerHTML = `
+        <div class="input-group">
+          <input type="hidden" id="messageReceiver" value="${sender}">
+          <input type="hidden" id="parentMessage" value="${parentMessage}">
+          <input type="text" id="messageReply" class="form-control" placeholder="Type your message..." />
+          <button type="button" id="replyButton" class="btn btn-outline-primary">
+            <i class="fas fa-paper-plane"></i> Send
+          </button>
+        </div>
+      `;
+
+    // Insert the form right after the button
+    button.parentNode.insertBefore(form, button.nextSibling);
+
+    // Add event listener to the reply button
+    document.getElementById('replyButton').addEventListener('click', function () {
+        let receiver = document.getElementById('messageReceiver').value;
+        let messageContent = document.getElementById('messageReply').value;
+        let parentMessage = document.getElementById('parentMessage').value;
+
+        let message = {
+            sender: currentUser,
+            content: messageContent,
+            recipient: receiver,
+            parentNumber:parentMessage,
+            timestamp: new Date()
+        };
+        sendMessage(message);
+
+        // Remove the replyForm
+        form.remove();
+    });
 }
 
 function encryptMessage(message) {
@@ -114,20 +165,13 @@ function decryptMessage(encryptedMessage) {
 }
 
 function dateTimeConvert(isoDateString) {
-
-// Create a new Date object
     const date = new Date(isoDateString);
-
-// Extract components
     const year = date.getFullYear();
-    const month = date.toLocaleString('default', {month: 'long'}); // Full month name
+    const month = date.toLocaleString('default', {month: 'short'});
     const day = date.getDate();
     const hours = date.getHours();
     const minutes = date.getMinutes();
-    const seconds = date.getSeconds();
-
-// Format the date into a readable format
-    return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
+    return `${month} ${day}, ${year} ${hours}:${minutes}`;
 }
 
 $(document).ready(function () {
@@ -135,16 +179,40 @@ $(document).ready(function () {
     currentUser = $("#currentUser").val();
 
     $('#sendButton').click(function () {
-        sendMessage();
+        let messageContent = $('#messageInput').val();
+        let message = {
+            sender: currentUser,
+            content: messageContent,
+            recipient: choseUser,
+            timestamp: new Date()
+        };
+        sendMessage(message);
     });
 
     $('#messageInput').keypress(function (e) {
         if (e.which === 13) { // Enter key pressed
-            sendMessage();
+            let messageContent = $('#messageInput').val();
+            let message = {
+                sender: currentUser,
+                content: messageContent,
+                recipient: choseUser,
+                timestamp: new Date()
+            };
+            sendMessage(message);
         }
     });
 });
 
+// create group
+function createGroup() {
+    console.log("new group modal")
+    $("#createGroupModal").modal('show');
+}
+
+$("#createGroupForm").submit(function (e) {
+    e.preventDefault()
+    $("#createGroupModal").modal('hide');
+})
 
 // Save message to session storage
 function saveMessageToSession(message) {
@@ -192,71 +260,71 @@ function clearMessagesFromSession() {
 //     };
 //
 // };
-
-updateOrAddRecord(2, 'Lalitj sdfdsffds')
-
-function updateOrAddRecord(id, name) {
-    // Open a connection to the IndexedDB database
-    const request = indexedDB.open('myDatabase', 2);
-
-    request.onupgradeneeded = function (event) {
-        const db = event.target.result;
-        console.log(!db.objectStoreNames.contains('myObjectStore'))
-        // Create an object store with the name 'myObjectStore' if it doesn't exist
-        if (!db.objectStoreNames.contains('myObjectStore')) {
-            db.createObjectStore('myObjectStore', {keyPath: 'id'});
-        }
-    };
-
-    request.onsuccess = function (event) {
-        const db = event.target.result;
-
-        // Start a transaction to access the object store
-        const transaction = db.transaction('myObjectStore', 'readwrite');
-        const objectStore = transaction.objectStore('myObjectStore');
-
-        // Define the record to be added or updated
-        const record = {id: id, name: name};
-
-        // Use the `put` method to add or update the record
-        const putRequest = objectStore.put(record);
-
-        const getRequest = objectStore.get(1);
-        getRequest.onsuccess = function () {
-            console.log(getRequest.result);
-        };
-
-        putRequest.onsuccess = function () {
-            console.log('Record added or updated successfully.');
-        };
-
-        putRequest.onerror = function () {
-            console.error('Error adding or updating record:', putRequest.error);
-        };
-
-        // Close the transaction when done
-        transaction.oncomplete = function () {
-            console.log('Transaction completed.');
-        };
-    };
-
-    request.onerror = function (event) {
-        console.error('Database error:', event.target.errorCode);
-    };
-}
-
-
-function deleteObjectStore(event) {
-    const db = event.target.result;
-
-    // Start a transaction to delete an object store
-    const transaction = db.transaction(['myObjectStore'], 'readwrite');
-    const objectStore = transaction.objectStore('myObjectStore');
-    // Delete all data from the object store
-    const clearRequest = objectStore.clear();
-
-    clearRequest.onsuccess = function () {
-        console.log('All data deleted from object store');
-    };
-}
+//
+// updateOrAddRecord(2, 'Lalitj sdfdsffds')
+//
+// function updateOrAddRecord(id, name) {
+//     // Open a connection to the IndexedDB database
+//     const request = indexedDB.open('myDatabase', 2);
+//
+//     request.onupgradeneeded = function (event) {
+//         const db = event.target.result;
+//         console.log(!db.objectStoreNames.contains('myObjectStore'))
+//         // Create an object store with the name 'myObjectStore' if it doesn't exist
+//         if (!db.objectStoreNames.contains('myObjectStore')) {
+//             db.createObjectStore('myObjectStore', {keyPath: 'id'});
+//         }
+//     };
+//
+//     request.onsuccess = function (event) {
+//         const db = event.target.result;
+//
+//         // Start a transaction to access the object store
+//         const transaction = db.transaction('myObjectStore', 'readwrite');
+//         const objectStore = transaction.objectStore('myObjectStore');
+//
+//         // Define the record to be added or updated
+//         const record = {id: id, name: name};
+//
+//         // Use the `put` method to add or update the record
+//         const putRequest = objectStore.put(record);
+//
+//         const getRequest = objectStore.get(1);
+//         getRequest.onsuccess = function () {
+//             console.log(getRequest.result);
+//         };
+//
+//         putRequest.onsuccess = function () {
+//             console.log('Record added or updated successfully.');
+//         };
+//
+//         putRequest.onerror = function () {
+//             console.error('Error adding or updating record:', putRequest.error);
+//         };
+//
+//         // Close the transaction when done
+//         transaction.oncomplete = function () {
+//             console.log('Transaction completed.');
+//         };
+//     };
+//
+//     request.onerror = function (event) {
+//         console.error('Database error:', event.target.errorCode);
+//     };
+// }
+//
+//
+// function deleteObjectStore(event) {
+//     const db = event.target.result;
+//
+//     // Start a transaction to delete an object store
+//     const transaction = db.transaction(['myObjectStore'], 'readwrite');
+//     const objectStore = transaction.objectStore('myObjectStore');
+//     // Delete all data from the object store
+//     const clearRequest = objectStore.clear();
+//
+//     clearRequest.onsuccess = function () {
+//         console.log('All data deleted from object store');
+//     };
+// }
 

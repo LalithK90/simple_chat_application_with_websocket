@@ -1,0 +1,39 @@
+.user-list-item {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.user-list-item:hover {
+    background-color: #f0f0f0;
+}
+
+.chat-message {
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+}
+
+#response {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Default for larger screens (desktop/laptop) */
+.scroll-container {
+    max-height: 300px;
+    overflow-y: auto; /* Vertical scroll on larger screens */
+}
+
+/* Mobile screens - horizontal scroll */
+@media (max-width: 768px) {
+    .scroll-container {
+        max-height: none;
+        white-space: nowrap; /* Prevent line breaks */
+        overflow-x: auto; /* Horizontal scroll on mobile */
+        overflow-y: hidden; /* Disable vertical scrolling */
+    }
+
+    .scroll-item {
+        display: inline-block; /* Items display side by side */
+        min-width: 150px; /* Ensure they have a minimum width */
+    }
+}

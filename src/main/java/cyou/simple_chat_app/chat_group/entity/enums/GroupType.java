@@ -1,4 +1,4 @@
-package cyou.simple_chat_app.group.entity.enums;
+package cyou.simple_chat_app.chat_group.entity.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

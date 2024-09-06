@@ -2,11 +2,12 @@ package cyou.simple_chat_app;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 
-@Service
+@Component
 @Slf4j
 public class CommonService {
 

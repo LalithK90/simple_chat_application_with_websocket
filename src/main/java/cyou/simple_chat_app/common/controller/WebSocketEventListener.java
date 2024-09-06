@@ -21,7 +21,8 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
-        String username = Objects.requireNonNull(event.getUser()).getName(); // Assume username is stored in the Principal object
+        String username = Objects.requireNonNull(event.getUser()).getName();
+        // Assume username is stored in the Principal object
         activeUserService.addUser(username);
         broadcastActiveUsers();
     }

@@ -1,10 +1,10 @@
 package cyou.simple_chat_app.common.controller;
 
 
-
 import cyou.simple_chat_app.common.dto.MessageDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,16 +19,19 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.UUID;
+
 
 @Controller
 @AllArgsConstructor
 public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
-    private final HttpServletRequest request;
 
 
     @MessageMapping("/chat.private.{username}")
     public void sendPrivateMessage(@DestinationVariable String username, MessageDTO message) {
+        message.setNumber(UUID.randomUUID().toString());
+        System.out.println(message);
         messagingTemplate.convertAndSendToUser(username, "/queue/messages", message);
     }
 
@@ -39,9 +42,11 @@ public class ChatController {
 
 
     @GetMapping("/chat")
-    public String message(Model model) throws Exception {
+    public String message(Model model) {
         model.addAttribute("messageUrl", MvcUriComponentsBuilder.fromMethodName(ChatController.class, "secretKey").toUriString());
+        model.addAttribute("getGroupsUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getGroups").toUriString());
         model.addAttribute("currentUser", SecurityContextHolder.getContext().getAuthentication().getName());
+
         return "message/message";
     }
 
