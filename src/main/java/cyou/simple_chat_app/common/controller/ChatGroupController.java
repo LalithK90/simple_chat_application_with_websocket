@@ -29,6 +29,7 @@ public class ChatGroupController {
 
     @PostMapping
     public ResponseEntity<ChatGroup> createGroup(@RequestBody ChatGroup group) {
+        System.out.println(group.toString());
         ChatGroup createdGroup = groupService.persist(group);
         return ResponseEntity.ok(createdGroup);
     }

@@ -2,6 +2,7 @@ package cyou.simple_chat_app.chat_group.service.impl;
 
 import cyou.simple_chat_app.chat_group.dao.ChatGroupDao;
 import cyou.simple_chat_app.chat_group.entity.ChatGroup;
+import cyou.simple_chat_app.chat_group.entity.enums.GroupState;
 import cyou.simple_chat_app.chat_group.service.ChatGroupService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,8 @@ public class ChatGroupServiceImpl implements ChatGroupService {
     }
 
     public ChatGroup persist(ChatGroup group) {
-        if(group.getId() ==null){
+        if (group.getId() == null) {
+            group.setGroupState(GroupState.ACC);
             group.setNumber(UUID.randomUUID().toString());
         }
         return chatGroupDao.save(group);

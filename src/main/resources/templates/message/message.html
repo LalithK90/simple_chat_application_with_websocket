@@ -133,6 +133,7 @@
 <input type="hidden" id="currentUser" data-th-value="${currentUser}">
 <input type="hidden" id="messageUrl" data-th-value="${messageUrl}">
 <input type="hidden" id="getGroupsUrl" data-th-value="${getGroupsUrl}">
+<input type="hidden" id="createGroupUrl" data-th-value="${createGroupUrl}">
 
 <script src="/js/message.js"></script>
 
@@ -146,32 +147,31 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="createGroupForm" class="was-validated">
-                    <div class="mb-3">
-                        <label for="groupName" class="form-label">Group Name: </label>
-                        <input type="text" class="form-control" id="groupName" required>
+                <div class="mb-3">
+                    <label for="groupName" class="form-label">Group Name: </label>
+                    <input type="text" class="form-control" id="groupName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="groupPurpose" class="form-label">Purpose of Group: </label>
+                    <textarea type="text" class="form-control" id="groupPurpose" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="groupType" class="form-label">Group Type: </label>
+                    <div class="form-check form-switch form-check-inline">
+                        <input class="form-check-input" name="groupType" value="PRIVATE" type="radio"
+                               id="groupTypeP" required>
+                        <label class="form-check-label" for="groupTypeP">Private</label>
                     </div>
-                    <div class="mb-3">
-                        <label for="groupPurpose" class="form-label">Purpose of Group: </label>
-                        <textarea type="text" class="form-control" id="groupPurpose" required></textarea>
+                    <div class="form-check form-switch form-check-inline">
+                        <input class="form-check-input" name="groupType" value="PUBLIC" type="radio"
+                               id="groupType" required>
+                        <label class="form-check-label" for="groupType">Public</label>
                     </div>
-                    <div class="mb-3">
-                        <label for="groupType" class="form-label">Group Type: </label>
-                        <div class="form-check form-switch form-check-inline">
-                            <input class="form-check-input" name="groupType" value="PRIVATE" type="radio"
-                                   id="groupTypeP" required>
-                            <label class="form-check-label" for="groupTypeP">Private</label>
-                        </div>
-                        <div class="form-check form-switch form-check-inline">
-                            <input class="form-check-input" name="groupType" value="PUBLIC" type="radio"
-                                   id="groupType" required>
-                            <label class="form-check-label" for="groupType">Public</label>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-outline-primary text-center"><i class="fas fa-plus"></i>Create
-                        Group
-                    </button>
-                </form>
+                </div>
+                <button onclick="createGroupSend()" class="btn btn-outline-primary text-center"><i
+                        class="fas fa-plus mx-1"></i>Create
+                    Group
+                </button>
             </div>
         </div>
     </div>
