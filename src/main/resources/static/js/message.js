@@ -2,7 +2,8 @@ let stompClient = null;
 let currentUser = null;
 let choseUser = null;
 let secretKey = null;
-
+let messageChat = [];
+let activeUsers = [];
 
 getData();
 
@@ -28,31 +29,35 @@ function connect() {
 
         // Subscribe to user's private messages
         stompClient.subscribe('/user/queue/messages', function (message) {
-            showMessage(JSON.parse(message.body));
+            showMessageReceived(JSON.parse(message.body));
+            messageChat.push(JSON.parse(message.body))
         });
 
         // Subscribe to group messages
         stompClient.subscribe('/topic/group', function (message) {
-            showMessage(JSON.parse(message.body));
+            showMessageReceived(JSON.parse(message.body));
         });
 
         // Subscribe to the active users list
         stompClient.subscribe('/topic/activeUsers', function (message) {
-            updateActiveUsers(JSON.parse(message.body));
+            JSON.parse(message.body).forEach(a => {
+                activeUsers.push(a)
+            })
+            updateUser()
         });
     }, function (error) {
         console.error('STOMP connection error:', error);
     });
 }
 
-// Update the active users list
-function updateActiveUsers(users) {
-    $('#activeUsers').empty();
-    users.forEach(function (user) {
-        if (user !== currentUser) {
-            $('#activeUsers').append(`<div class="scroll-item p-2 m-2 rounded bg-opacity-50" onclick="selectUser(this)"><i class="fas fa-user mx-2"></i><span>${user}</span></div>`);
-        }
-    });
+function updateUser() {
+    let filterArray = activeUsers.filter(user => user !== currentUser);
+    filterArray = [...new Set(filterArray)];
+    $("#activeUsers").empty();
+    for (let user of filterArray) {
+        $('#activeUsers').append(`<div class="scroll-item p-2 m-2 rounded bg-opacity-50" onclick="selectUser(this)"><i class="fas fa-user mx-1 mx-2"></i><span>${user}</span></div>`);
+    }
+
 }
 
 function selectUser(element) {
@@ -62,8 +67,7 @@ function selectUser(element) {
         });
     element.classList.add('bg-primary');
     choseUser = element.textContent || element.innerText;
-    console.log(`${choseUser}`)
-    $('#selectedUser').html('<span> Chatting with: <em>' + choseUser + '</em></span>');
+    $('#selectedUser').html('<span> <i class="fas fa-comments mx-1"></i> Chatting with: <em> <i class="fas fa-user mx-1"></i>' + choseUser + '</em></span>');
 }
 
 // Send a message
@@ -73,6 +77,7 @@ function sendMessage(message) {
         message.content = messageContent;
         stompClient.send("/app/chat.private." + message.recipient, {}, JSON.stringify(message));
         $('#messageInput').val('');
+        messageChat.push(message)
     } else {
         swal({
             title: "Are you mad?",
@@ -82,25 +87,52 @@ function sendMessage(message) {
             dangerMode: true,
         })
     }
+    console.log(messageChat)
 }
 
 // Display a received message
-function showMessage(message) {
+function showMessageReceived(message) {
     let decryptedContent = decryptMessage(message.content);
     let chatArea = $('#chatArea');
-    let messageElement = `<div> 
-                                    <p>
-                                      <strong> 
-                                        <span onclick="selectUser(this)">${message.sender}</span>:
-                                      </strong> ${decryptedContent} at <em>${dateTimeConvert(message.timestamp)}</em>
-                                      <button data-sender="${message.sender}" data-parent="${message.number}" class="btn btn-sm btn-outline-info bg-opacity-75" onclick="replyToMessage(this)">
-                                         <i class="fas fa-reply"></i>
-                                      </button>
-                                    </p>
+    let messageElement = `<div id="${message.number}" class="row"> 
+                                    <div class="text-start">
+                                        <p id="p_${message.number}">
+                                          <strong> 
+                                            <span onclick="selectUser(this)">${message.sender}</span>:
+                                          </strong> ${decryptedContent} at <em>${dateTimeConvert(message.timestamp)}</em>
+                                          <button data-sender="${message.sender}" data-parent="${message.number}" class="btn btn-sm btn-outline-info bg-opacity-75" onclick="replyToMessage(this)">
+                                             <i class="fas fa-reply"></i>
+                                          </button>
+                                        </p>
+                                    </div>
                                 </div>`;
-    chatArea.append(messageElement);
-    chatArea.scrollTop(chatArea[0].scrollHeight);
+    if (message.parentNumber) {
+        $(`#p_${message.parentNumber}`).append(messageElement)
+    } else {
+        chatArea.append(messageElement);
+        chatArea.scrollTop(chatArea[0].scrollHeight);
+    }
     choseUser = message.sender;
+    $('#selectedUser').html('<span> <i class="fas fa-comments mx-1"></i> Chatting with: <em> <i class="fas fa-user mx-1"></i>' + choseUser + '</em></span>');
+}
+
+function showMessageReplySend(message) {
+    let decryptedContent = decryptMessage(message.content);
+    let chatArea = $(`#${message.number}`);
+    let messageElement = `<div id="${message.number}" class="row"> 
+                                    <div class="text-end">
+                                        <p>
+                                          <strong> 
+                                            <span onclick="selectUser(this)">${message.sender}</span>:
+                                          </strong> ${decryptedContent} at <em>${dateTimeConvert(message.timestamp)}</em>
+                                          <button data-sender="${message.sender}" data-parent="${message.number}" class="btn btn-sm btn-outline-info bg-opacity-75" onclick="replyToMessage(this)">
+                                             <i class="fas fa-reply"></i>
+                                          </button>
+                                        </p>
+                                    </div>
+                                </div>`;
+
+    chatArea.append(messageElement);
 }
 
 function replyToMessage(button) {
@@ -132,11 +164,11 @@ function replyToMessage(button) {
             sender: currentUser,
             content: messageContent,
             recipient: receiver,
-            parentNumber:parentMessage,
+            parentNumber: parentMessage,
             timestamp: new Date()
         };
         sendMessage(message);
-
+        showMessageReplySend(message)
         // Remove the replyForm
         form.remove();
     });
@@ -144,6 +176,11 @@ function replyToMessage(button) {
 
 function encryptMessage(message) {
     return CryptoJS.AES.encrypt(message, secretKey).toString();
+}
+
+function decryptMessage(encryptedMessage) {
+    let bytes = CryptoJS.AES.decrypt(encryptedMessage, secretKey);
+    return bytes.toString(CryptoJS.enc.Utf8);
 }
 
 function sendGroupMessage(groupName, messageContent) {
@@ -157,11 +194,6 @@ function sendGroupMessage(groupName, messageContent) {
         stompClient.send("/app/chat.group." + groupName, {}, JSON.stringify(message));
         $('#messageInput').val('');
     }
-}
-
-function decryptMessage(encryptedMessage) {
-    let bytes = CryptoJS.AES.decrypt(encryptedMessage, secretKey);
-    return bytes.toString(CryptoJS.enc.Utf8);
 }
 
 function dateTimeConvert(isoDateString) {
@@ -187,6 +219,7 @@ $(document).ready(function () {
             timestamp: new Date()
         };
         sendMessage(message);
+        showMessageReplySend(message)
     });
 
     $('#messageInput').keypress(function (e) {
@@ -199,6 +232,7 @@ $(document).ready(function () {
                 timestamp: new Date()
             };
             sendMessage(message);
+            showMessageReplySend(message)
         }
     });
 });
