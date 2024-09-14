@@ -7,15 +7,13 @@ import cyou.simple_chat_app.audit.AuditEntity;
 import cyou.simple_chat_app.chat.chat_group_member.entity.ChatGroupMember;
 import cyou.simple_chat_app.chat.chat_group.entity.enums.GroupState;
 import cyou.simple_chat_app.chat.chat_group.entity.enums.GroupType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -33,6 +31,6 @@ public class ChatGroup extends AuditEntity {
     @Enumerated(EnumType.STRING)
     private GroupType groupType;
 
-    @OneToMany
-    private Set<ChatGroupMember> chatGroupMembers;
+    @OneToMany(mappedBy = "chatGroup",cascade = {CascadeType.PERSIST, CascadeType.REMOVE},fetch = FetchType.EAGER)
+    private List<ChatGroupMember> chatGroupMembers;
 }

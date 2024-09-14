@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 public interface ChatGroupService {
     Page<ChatGroup> findAll(Pageable pageable);
 
-    ChatGroup persist(ChatGroup group);
+    void persist(ChatGroup group);
 
     ChatGroup findByNumber(String groupNumber);
 

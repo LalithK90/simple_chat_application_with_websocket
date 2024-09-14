@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatGroupDao extends JpaRepository<ChatGroup, Long> {
     ChatGroup findByNumber(String groupNumber);
+
     Page<ChatGroup> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     // Custom query to improve performance and fetch group and member count

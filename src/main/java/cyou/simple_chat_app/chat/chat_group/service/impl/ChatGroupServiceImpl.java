@@ -45,19 +45,20 @@ public class ChatGroupServiceImpl implements ChatGroupService {
         return chatGroupDao.findAll(pageable);
     }
 
-    public ChatGroup persist(ChatGroup group) {
+
+    public void persist(ChatGroup group) {
         if (group.getId() == null) {
             group.setGroupState(GroupState.ACC);
             group.setNumber(UUID.randomUUID().toString());
         }
-        return chatGroupDao.save(group);
+        chatGroupDao.save(group);
     }
 
     public ChatGroup findByNumber(String groupNumber) {
         return chatGroupDao.findByNumber(groupNumber);
     }
 
-    @Override
+
     public Page<ChatGroup> findByNameContainingIgnoreCase(String search, Pageable pageable) {
         return chatGroupDao.findByNameContainingIgnoreCase(search, pageable);
     }

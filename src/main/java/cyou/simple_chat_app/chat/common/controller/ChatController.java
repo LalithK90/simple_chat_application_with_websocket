@@ -45,9 +45,6 @@ public class ChatController {
         model.addAttribute("messageUrl", MvcUriComponentsBuilder.fromMethodName(ChatController.class, "secretKey").toUriString());
         model.addAttribute("currentUser", SecurityContextHolder.getContext().getAuthentication().getName());
 
-        model.addAttribute("getGroupsUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getPaginatedGroups","","","").toUriString());
-        model.addAttribute("createGroupUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "createGroup", "").toUriString());
-
         return "message/message";
     }
 
