@@ -176,6 +176,76 @@
         </div>
     </div>
 </div>
+<table id="groupTable" class="display">
+    <thead>
+    <tr>
+        <th>Group Name</th>
+        <th>Group Type</th>
+        <th>Member Count</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
+<table id="memberTable" class="display">
+    <thead>
+    <tr>
+        <th>Username</th>
+        <th>Email</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+<script>
+    $(document).ready(function() {
+        $('#groupTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/api/groups',
+                data: function(d) {
+                    d.search = d.search.value;  // Pass search input to backend
+                },
+                dataSrc: function(json) {
+                    return json.content; // Handle Spring Boot Page response
+                }
+            },
+            columns: [
+                { data: 'name' },
+                { data: 'groupType' },
+                { data: 'memberCount' }
+            ],
+            paging: true,
+            searching: true
+        });
+
+        // Add click event listener for row (open SweetAlert or fetch members)
+    });
+
+    function loadGroupMembers(groupId) {
+        $('#memberTable').DataTable({
+            processing: true,
+            serverSide: true,
+            destroy: true, // Reinitialize DataTable when changing groups
+            ajax: {
+                url: '/api/groups/' + groupId + '/members',
+                data: function(d) {
+                    d.search = d.search.value;
+                },
+                dataSrc: function(json) {
+                    return json.content;
+                }
+            },
+            columns: [
+                { data: 'userName' },
+                { data: 'userEmail' }
+            ],
+            paging: true,
+            searching: true
+        });
+    }
+</script>
 </body>
 </html>
