@@ -1,6 +1,7 @@
 package cyou.simple_chat_app.chat.common.controller;
 
 
+import cyou.simple_chat_app.chat.chat_group.controller.ChatGroupController;
 import cyou.simple_chat_app.chat.common.dto.MessageDTO;
 import lombok.AllArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -44,7 +45,7 @@ public class ChatController {
         model.addAttribute("messageUrl", MvcUriComponentsBuilder.fromMethodName(ChatController.class, "secretKey").toUriString());
         model.addAttribute("currentUser", SecurityContextHolder.getContext().getAuthentication().getName());
 
-//        model.addAttribute("getGroupsUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getGroups").toUriString());
+        model.addAttribute("getGroupsUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getPaginatedGroups","","","").toUriString());
         model.addAttribute("createGroupUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "createGroup", "").toUriString());
 
         return "message/message";

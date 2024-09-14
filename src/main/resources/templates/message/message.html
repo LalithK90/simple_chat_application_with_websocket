@@ -14,17 +14,16 @@
     <div class="col-10">
         <div class="row mb-3">
             <div class="col-sm-6">
-                <button class=" btn btn-sm btn-outline-info container" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                    Chat with Online Users
-                </button>
+
             </div>
             <div class="col-sm-6">
-                <button class=" collapsed btn btn-sm btn-outline-warning container" type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                    Group Chat
-                </button>
+                <a href="/chat/groups/page">
+                    <button class=" collapsed btn btn-sm btn-outline-warning container" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        Group in Chat
+                    </button>
+                </a>
             </div>
         </div>
         <div class="accordion" id="accordionExample">
@@ -40,6 +39,8 @@
                                         <h5 class="text-center"><i class="fas fa-circle text-success"></i> &nbsp; Online
                                             Users</h5>
                                         <hr>
+                                            <input type="text" placeholder="Type to search" id="userSearch" class="form-control">
+
                                         <div class="scroll-container" id="activeUsers">
 
                                         </div>
@@ -78,49 +79,6 @@
                     </div>
                 </div>
             </div>
-            <div class="accordion-item">
-                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
-                     data-bs-parent="#accordionExample">
-                    <div class="accordion-body">
-                        <div class="container">
-                            <div class="row mt-2">
-                                <!-- Group Selection -->
-                                <div class="col-sm-3">
-                                    <div class="card pt-2">
-                                        <span class="text-center h5"><i class="fas fa-users"></i> Groups &nbsp;&nbsp;
-                                        <button type="button" class="btn btn-sm btn-outline-info"
-                                                onclick="createGroup()" aria-label=""> <i class="fas fa-users"></i> <i
-                                                class="fas fa-plus"></i></button>
-                                        </span>
-                                        <div class="scroll-container" id="groupList">
-                                            <!-- Groups will be dynamically inserted here -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Chat Area -->
-                                <div class="col-sm-9">
-                                    <h5>Chat</h5>
-                                    <div id="chatAreaG" class="border p-3 mb-3"
-                                         style="height: 400px; overflow-y: auto;">
-                                        <!-- Messages will be dynamically inserted here -->
-                                    </div>
-
-                                    <!-- Message Input -->
-                                    <form id="chatFormG">
-                                        <div class="input-group">
-                                            <input type="text" id="messageInputG" class="form-control"
-                                                   placeholder="Type your message...">
-                                            <button type="button" id="sendButtonG" class="btn btn-primary">
-                                                <i class="fas fa-paper-plane"></i> Send
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
     <div class="col-1"></div>
@@ -137,115 +95,5 @@
 
 <script src="/js/message.js"></script>
 
-
-<!-- Create Group Modal -->
-<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createGroupModalLabel">Create Group</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="groupName" class="form-label">Group Name: </label>
-                    <input type="text" class="form-control" id="groupName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="groupPurpose" class="form-label">Purpose of Group: </label>
-                    <textarea type="text" class="form-control" id="groupPurpose" required></textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="groupType" class="form-label">Group Type: </label>
-                    <div class="form-check form-switch form-check-inline">
-                        <input class="form-check-input" name="groupType" value="PRIVATE" type="radio"
-                               id="groupTypeP" required>
-                        <label class="form-check-label" for="groupTypeP">Private</label>
-                    </div>
-                    <div class="form-check form-switch form-check-inline">
-                        <input class="form-check-input" name="groupType" value="PUBLIC" type="radio"
-                               id="groupType" required>
-                        <label class="form-check-label" for="groupType">Public</label>
-                    </div>
-                </div>
-                <button onclick="createGroupSend()" class="btn btn-outline-primary text-center"><i
-                        class="fas fa-plus mx-1"></i>Create
-                    Group
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<table id="groupTable" class="display">
-    <thead>
-    <tr>
-        <th>Group Name</th>
-        <th>Group Type</th>
-        <th>Member Count</th>
-    </tr>
-    </thead>
-    <tbody></tbody>
-</table>
-
-<table id="memberTable" class="display">
-    <thead>
-    <tr>
-        <th>Username</th>
-        <th>Email</th>
-    </tr>
-    </thead>
-    <tbody></tbody>
-</table>
-
-
-<script>
-    $(document).ready(function() {
-        $('#groupTable').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: '/api/groups',
-                data: function(d) {
-                    d.search = d.search.value;  // Pass search input to backend
-                },
-                dataSrc: function(json) {
-                    return json.content; // Handle Spring Boot Page response
-                }
-            },
-            columns: [
-                { data: 'name' },
-                { data: 'groupType' },
-                { data: 'memberCount' }
-            ],
-            paging: true,
-            searching: true
-        });
-
-        // Add click event listener for row (open SweetAlert or fetch members)
-    });
-
-    function loadGroupMembers(groupId) {
-        $('#memberTable').DataTable({
-            processing: true,
-            serverSide: true,
-            destroy: true, // Reinitialize DataTable when changing groups
-            ajax: {
-                url: '/api/groups/' + groupId + '/members',
-                data: function(d) {
-                    d.search = d.search.value;
-                },
-                dataSrc: function(json) {
-                    return json.content;
-                }
-            },
-            columns: [
-                { data: 'userName' },
-                { data: 'userEmail' }
-            ],
-            paging: true,
-            searching: true
-        });
-    }
-</script>
 </body>
 </html>

@@ -9,12 +9,9 @@ getData();
 function getData() {
     let url = $("#messageUrl").val();
     $.ajax({
-        url: url,
-        type: 'GET',
-        success: function (data) {
+        url: url, type: 'GET', success: function (data) {
             secretKey = data
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
+        }, error: function (jqXHR, textStatus, errorThrown) {
             console.error('Error fetching session key:', textStatus, errorThrown);
         }
     });
@@ -87,6 +84,7 @@ function sendMessage(message) {
 }
 
 function replyToMessage(button) {
+    $("#sendButton").prop('disabled', true)
     let sender = button.getAttribute('data-sender');
     let parentMessage = button.getAttribute('data-parent');
     let uniqueCode = button.getAttribute('data-uni');
@@ -109,6 +107,7 @@ function replyToMessage(button) {
 
     // Add event listener to the reply button
     document.getElementById('replyButton').addEventListener('click', function () {
+        $("#sendButton").prop('disabled', false)
         let receiver = document.getElementById('messageReceiver').value;
         let messageContent = document.getElementById('messageReply').value;
         let parentMessage = document.getElementById('parentMessage').value;
@@ -146,7 +145,7 @@ function renderMessage(message) {
 }
 
 function addCommonChatMessage(message) {
-    choseUser = message.sender;
+    // choseUser = message.sender;
     $('#selectedUser').html('<span> <i class="fas fa-comments mx-1"></i> Chatting with: <em> <i class="fas fa-user mx-1"></i>' + choseUser + '</em></span>');
 
     const messageContainer = document.getElementById('chatArea');
@@ -193,9 +192,7 @@ function sendGroupMessage(groupName, messageContent) {
     if (messageContent.trim() !== '') {
         let encryptedContent = encryptMessage(messageContent, secretKey);
         let message = {
-            sender: currentUser,
-            content: encryptedContent,
-            timestamp: new Date()
+            sender: currentUser, content: encryptedContent, timestamp: new Date()
         };
         stompClient.send("/app/chat.group." + groupName, {}, JSON.stringify(message));
         $('#messageInput').val('');
@@ -209,10 +206,7 @@ $(document).ready(function () {
     $('#sendButton').click(function () {
         let messageContent = $('#messageInput').val();
         let message = {
-            sender: currentUser,
-            content: messageContent,
-            recipient: choseUser,
-            timestamp: new Date()
+            sender: currentUser, content: messageContent, recipient: choseUser, timestamp: new Date()
         };
         sendMessage(message);
     });
@@ -221,50 +215,31 @@ $(document).ready(function () {
         if (e.which === 13) { // Enter key pressed
             let messageContent = $('#messageInput').val();
             let message = {
-                sender: currentUser,
-                content: messageContent,
-                recipient: choseUser,
-                timestamp: new Date()
+                sender: currentUser, content: messageContent, recipient: choseUser, timestamp: new Date()
             };
             sendMessage(message);
         }
     });
 });
 
-// create group
-function createGroup() {
-    $("#createGroupModal").modal('show');
-}
 
-function createGroupSend() {
-    let chatGroup = {
-        name: $("#groupName").val(),
-        purpose: $("#groupPurpose").val(),
-        groupType: $("input[name='groupType']").val()
-    }
-    if (chatGroup.name || chatGroup.purpose || chatGroup.groupType) {
-        $.ajax({
-            url: $("#createGroupUrl").val(),
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(chatGroup),
-            success: function (data) {
-                console.log(data)
-                $("#createGroupModal").modal('hide');
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.error('Error fetching session key:', textStatus, errorThrown);
-            }
-        });
+$("#userSearch").keyup(function () {
+    let typeValue = $(this).val();
+    if (typeValue) {
+        let filterArray = activeUsers.filter(user => user !== currentUser);
+        $("#activeUsers").empty();
+        const filterArray1 = filterUsersByName(filterArray, typeValue)
+        const filterArray2 = [...new Set(filterArray1)];
+        for (let user of filterArray2) {
+            $('#activeUsers').append(`<div class="scroll-item p-2 m-2 rounded bg-opacity-50" onclick="selectUser(this)"><i class="fas fa-user mx-1 mx-2"></i><span>${user}</span></div>`);
+        }
     } else {
-        swal({
-            title: "Are you mad?",
-            text: "Please fill all data in the form",
-            icon: "warning",
-            buttons: true,
-            dangerMode: true,
-        })
+        updateUser()
     }
+})
 
+function filterUsersByName(activeUsers, input) {
+    const sortString = (str) => str.toLowerCase().split('').sort().join('');
+    const sortedInput = sortString(input);
+    return activeUsers.filter(user => sortString(user).includes(sortedInput));
 }
-
