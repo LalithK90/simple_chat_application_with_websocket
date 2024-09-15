@@ -9,4 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ChatGroupMemberDao extends JpaRepository<ChatGroupMember, Long> {
     Page<ChatGroupMember> findByChatGroupAndUsernameContaining(ChatGroup chatGroup, String username, Pageable pageable);
 
+    Page<ChatGroupMember> findByChatGroup(ChatGroup group, Pageable pageable);
+
+    Page<ChatGroupMember> findByChatGroupAndUsernameContainingIgnoreCase(ChatGroup group, String search, Pageable pageable);
+
+    ChatGroupMember findByChatGroupAndUsername(ChatGroup group, String username);
 }

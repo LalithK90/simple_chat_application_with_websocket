@@ -1,12 +1,10 @@
 package cyou.simple_chat_app.chat.chat_group.entity;
 
 
-
-
 import cyou.simple_chat_app.audit.AuditEntity;
-import cyou.simple_chat_app.chat.chat_group_member.entity.ChatGroupMember;
 import cyou.simple_chat_app.chat.chat_group.entity.enums.GroupState;
 import cyou.simple_chat_app.chat.chat_group.entity.enums.GroupType;
+import cyou.simple_chat_app.chat.chat_group_member.entity.ChatGroupMember;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +12,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Getter
@@ -31,6 +28,6 @@ public class ChatGroup extends AuditEntity {
     @Enumerated(EnumType.STRING)
     private GroupType groupType;
 
-    @OneToMany(mappedBy = "chatGroup",cascade = {CascadeType.PERSIST, CascadeType.REMOVE},fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "chatGroup", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private List<ChatGroupMember> chatGroupMembers;
 }

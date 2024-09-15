@@ -1,53 +1,3 @@
-let stompClient = null;
-let currentUser = null;
-let choseUser = null;
-let secretKey = null;
-let activeUsers = [];
-
-getData();
-
-function getData() {
-    let url = $("#messageUrl").val();
-    $.ajax({
-        url: url,
-        type: 'GET',
-        success: function (data) {
-            secretKey = data
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.error('Error fetching session key:', textStatus, errorThrown);
-        }
-    });
-}
-
-// Connect to WebSocket
-function connect() {
-    let socket = new SockJS('/chat');
-    stompClient = Stomp.over(socket);
-    stompClient.connect({}, function (frame) {
-
-        // Subscribe to user's private messages
-        stompClient.subscribe('/user/queue/messages', function (message) {
-            addCommonChatMessage(JSON.parse(message.body));
-        });
-
-        // Subscribe to group messages
-        stompClient.subscribe('/topic/group', function (message) {
-            addCommonChatMessage(JSON.parse(message.body));
-        });
-
-        // Subscribe to the active users list
-        stompClient.subscribe('/topic/activeUsers', function (message) {
-            JSON.parse(message.body).forEach(a => {
-                activeUsers.push(a)
-            })
-            updateUser()
-        });
-    }, function (error) {
-        console.error('STOMP connection error:', error);
-    });
-}
-
 function updateUser() {
     let filterArray = activeUsers.filter(user => user !== currentUser);
     filterArray = [...new Set(filterArray)];
@@ -229,7 +179,135 @@ $(document).ready(function () {
             sendMessage(message);
         }
     });
+
+    loadGroups()
 });
+
+function loadGroups() {
+    let getGroupsUrl = $("#getGroupsUrl").val()
+    $('#groupTable').DataTable({
+        destroy: true,
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: getBaseUrl(getGroupsUrl),
+            "data": function (d) {
+                let page = Math.floor(d.start / d.length);  // Calculate page
+                let size = d.length;  // Page size
+                let search = d.search.value;  // Search value
+
+                return {
+                    "page": page,
+                    "size": size,
+                    "search": search,
+                    "draw": d.draw  // Draw count
+                };
+            },
+            "error": function (xhr, error, code) {
+                console.log("Error:", error);
+                console.log("XHR:", xhr);
+            }
+        },
+        columns: [
+            {data: 'name'},
+            {
+                "data": "memberCount",
+                "render": function (data) {
+                    return `<i class="fas fa-users"></i> ${data}`;
+                }
+            },
+            {data: 'purpose'},
+            {data: 'groupType'},
+            {data: 'groupState'},
+            {
+                "data": "number",
+                "render": function (data, type, row) {
+                    return `
+                            <div class="row justify-content-around">
+                                <button class='btn-join btn btn-sm btn-outline-info mx-1'  data-gnum='${data}' title='Join'> <i class='fas fa-user-plus'></i>Join / <i class='fas fa-eye'></i> See</button>
+                            </div>`
+                }
+            }
+        ],
+        paging: true,
+        searching: true,
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50, 100]
+    });
+
+    let datableRow = $('#groupTable tbody')
+    // Event listener for "Join" button
+    datableRow.on('click', 'button.btn-join', function () {
+        let groupNumber = $(this).data('gnum');
+        let $row = $(this).closest('tr');
+
+        let groupName = $row.find('td:nth-child(1)').text(); // First column (Group Name)
+        let membersCount = $row.find('td:nth-child(2)').text(); // Second column (# Members)
+        let groupPurpose = $row.find('td:nth-child(3)').text(); // Third column (Purpose)
+        let groupType = $row.find('td:nth-child(4)').text(); // Fourth column (Type)
+        let groupState = $row.find('td:nth-child(5)').text();// Fifth column (State)
+
+        // Build the alert content
+        let alertContent = `
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <ul class="list-unstyled">
+                    <li><strong>Group Name:</strong> ${groupName}</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <ul class="list-unstyled">
+                    <li><strong>Members Count:</strong> ${membersCount}</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <ul class="list-unstyled">
+                    <li><strong>Purpose:</strong> ${groupPurpose}</li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <ul class="list-unstyled">
+                    <li><strong>Type:</strong> ${groupType}</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <ul class="list-unstyled">
+                    <li><strong>State:</strong> ${groupState}</li>
+                </ul>
+            </div>
+             <div class="col-md-4 justify-content-around">
+                <button onclick="groupJoinRequest('${groupNumber}')" class="btn btn-outline-primary align-end">
+                    <i class="fas fa-plus mx-1"></i> Join
+                </button>
+                <button onclick="groupExitRequest('${groupNumber}')" class="btn btn-outline-danger align-end">
+                    <i class="fas fa-bin mx-1"></i> Exit
+                </button>
+             </div>
+        </div>
+    </div>
+`;
+        // Update the alert with the group details
+        let groupDetail = $("#groupDetail")
+        groupDetail.html(alertContent).removeClass('d-none'); // Show alert and add content
+
+        // Optionally, you can scroll to the alert section if it's not in view
+        $('html, body').animate({
+            scrollTop: groupDetail.offset().top
+        }, 500);
+
+        $("#groupDetailModal").modal('show');
+        loadGroupMembers(groupNumber)
+    });
+
+}
+
+function getBaseUrl(url) {
+    // Split the URL at the "?" character
+    return url.split('?')[0];
+}
 
 // create group
 function createGroup() {
@@ -242,7 +320,7 @@ function createGroupSend() {
         purpose: $("#groupPurpose").val(),
         groupType: $("input[name='groupType']").val()
     }
-    if (chatGroup.name || chatGroup.purpose || chatGroup.groupType) {
+    if (chatGroup.name.length > 0 && chatGroup.purpose.length > 0 && chatGroup.groupType.length > 0) {
         $.ajax({
             url: $("#createGroupUrl").val(),
             type: 'POST',
@@ -251,6 +329,7 @@ function createGroupSend() {
             success: function (data) {
                 console.log(data)
                 $("#createGroupModal").modal('hide');
+                loadGroups()
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.error('Error fetching session key:', textStatus, errorThrown);
@@ -268,3 +347,95 @@ function createGroupSend() {
 
 }
 
+function loadGroupMembers(groupNumber) {
+    $("#groupId").val(groupNumber)
+    let getGroupMembersUrl = $("#getGroupMembersUrl").val();
+    $('#memberTable').DataTable({
+        processing: true,
+        serverSide: true,
+        destroy: true, // Reinitialize DataTable when changing groups
+        ajax: {
+            url: getBaseUrl(getGroupMembersUrl) + groupNumber,
+            "data": function (d) {
+                let page = Math.floor(d.start / d.length);  // Calculate page
+                let size = d.length;  // Page size
+                let search = d.search.value;  // Search value
+
+                return {
+                    "page": page,
+                    "size": size,
+                    "search": search,
+                    "draw": d.draw  // Draw count
+                };
+            },
+            "error": function (xhr, error, code) {
+                console.log("Error:", error);
+                console.log("XHR:", xhr);
+            }
+        },
+        columns: [
+            {data: 'username'},
+            {data: 'userEmail'}
+        ],
+        paging: true,
+        searching: true,
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50, 100]
+    });
+}
+
+function groupJoinRequest(groupNumber) {
+    let url = $("#joinGroupUrl").val()
+    swal({
+        title: "Are you sure?",
+        text: "Do you want to join this group ?",
+        icon: "warning",
+        buttons: true,
+        dangerMode: true,
+    })
+        .then((willJoin) => {
+            if (willJoin) {
+                $.ajax({
+                    url: getBaseUrl(url) + groupNumber, type: 'GET', success: function (data) {
+                        console.log(data)
+                        swal(`Poof! ${data}!`, {
+                            icon: "success",
+                        });
+                    }, error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('Error fetching session key:', textStatus, errorThrown);
+                    }
+                });
+
+            } else {
+                swal("Your still member of the group!");
+            }
+        });
+}
+
+function groupExitRequest(groupNumber) {
+    let url = $("#exitGroupUrl").val()
+    swal({
+        title: "Are you sure?",
+        text: "Do you want to exit this group ?",
+        icon: "warning",
+        buttons: true,
+        dangerMode: true,
+    })
+        .then((willJoin) => {
+            if (willJoin) {
+                $.ajax({
+                    url: getBaseUrl(url) + groupNumber, type: 'GET', success: function (data) {
+                        swal(`Poof! ${data}!`, {
+                            icon: "success",
+                        });
+                        location.reload();
+                    }, error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('Error fetching session key:', textStatus, errorThrown);
+                    }
+                });
+
+            } else {
+                swal("Your still member of the group!");
+            }
+        });
+}

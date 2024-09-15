@@ -10,6 +10,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatGroupDto {
-    private String name,number;
+    private String name,number,purpose, groupType,groupState;
     private int memberCount;
 }

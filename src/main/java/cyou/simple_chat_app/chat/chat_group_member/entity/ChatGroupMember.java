@@ -21,7 +21,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ChatGroupMember extends AuditEntity {
 
-    private String username;
+    private String username, number;
 
     @Enumerated(EnumType.STRING)
     private MemberType memberType;

@@ -20,29 +20,9 @@ public class ChatGroupServiceImpl implements ChatGroupService {
 
     private final ChatGroupDao chatGroupDao;
 
-    // Mapping between group names and members
-    private final Map<String, Set<String>> groups = new ConcurrentHashMap<>();
 
-    public void addGroupMember(String groupName, String username) {
-        groups.computeIfAbsent(groupName, k -> ConcurrentHashMap.newKeySet()).add(username);
-    }
-
-    public void removeGroupMember(String groupName, String username) {
-        if (groups.containsKey(groupName)) {
-            groups.get(groupName).remove(username);
-            if (groups.get(groupName).isEmpty()) {
-                groups.remove(groupName);
-            }
-        }
-    }
-
-    public Set<String> getGroupMembers(String groupName) {
-        return groups.getOrDefault(groupName, ConcurrentHashMap.newKeySet());
-    }
-
-
-    public Page<ChatGroup> findAll(Pageable pageable) {
-        return chatGroupDao.findAll(pageable);
+    public Page<ChatGroup> findAllActive(Pageable pageable) {
+        return chatGroupDao.findByGroupState( GroupState.ACC,pageable);
     }
 
 
@@ -60,10 +40,14 @@ public class ChatGroupServiceImpl implements ChatGroupService {
 
 
     public Page<ChatGroup> findByNameContainingIgnoreCase(String search, Pageable pageable) {
-        return chatGroupDao.findByNameContainingIgnoreCase(search, pageable);
+        return chatGroupDao.findByGroupStateAndNameContainingIgnoreCase(GroupState.ACC,search, pageable);
     }
 
     public ChatGroup findById(Long groupId) {
         return chatGroupDao.getReferenceById(groupId);
+    }
+
+    public void delete(ChatGroup group) {
+        chatGroupDao.delete(group);
     }
 }

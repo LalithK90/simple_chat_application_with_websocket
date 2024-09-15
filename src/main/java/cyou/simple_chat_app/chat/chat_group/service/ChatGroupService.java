@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ChatGroupService {
-    Page<ChatGroup> findAll(Pageable pageable);
+    Page<ChatGroup> findAllActive(Pageable pageable);
 
     void persist(ChatGroup group);
 
@@ -14,4 +14,6 @@ public interface ChatGroupService {
     Page<ChatGroup> findByNameContainingIgnoreCase(String search, Pageable pageable);
 
     ChatGroup findById(Long groupId);
+
+    void delete(ChatGroup group);
 }

@@ -12,6 +12,4 @@ import lombok.Setter;
 public class ChatGroupMemberDto {
     private String username;
     private String userEmail;
-
-
 }

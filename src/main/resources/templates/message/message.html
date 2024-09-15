@@ -17,7 +17,7 @@
 
             </div>
             <div class="col-sm-6">
-                <a href="/chat/groups/page">
+                <a href="/groups/page">
                     <button class=" collapsed btn btn-sm btn-outline-warning container" type="button"
                             data-bs-toggle="collapse"
                             data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
@@ -39,7 +39,8 @@
                                         <h5 class="text-center"><i class="fas fa-circle text-success"></i> &nbsp; Online
                                             Users</h5>
                                         <hr>
-                                            <input type="text" placeholder="Type to search" id="userSearch" class="form-control">
+                                        <input type="text" placeholder="Type to search" id="userSearch"
+                                               class="form-control">
 
                                         <div class="scroll-container" id="activeUsers">
 
@@ -91,6 +92,7 @@
 <input type="hidden" id="currentUser" data-th-value="${currentUser}">
 <input type="hidden" id="messageUrl" data-th-value="${messageUrl}">
 
+<script src="/js/commonMessage.js"></script>
 <script src="/js/message.js"></script>
 
 </body>

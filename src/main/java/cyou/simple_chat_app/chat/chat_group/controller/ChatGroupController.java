@@ -11,6 +11,7 @@ import cyou.simple_chat_app.chat.chat_group_member.entity.enums.MemberStatus;
 import cyou.simple_chat_app.chat.chat_group_member.entity.enums.MemberType;
 import cyou.simple_chat_app.chat.chat_group_member.service.ChatGroupMemberService;
 import cyou.simple_chat_app.chat.common.controller.ChatController;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,18 +24,18 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
-import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping("/chat/groups")
+@RequestMapping("/groups")
 @AllArgsConstructor
 public class ChatGroupController {
     private final ChatGroupService chatGroupService;
     private final ChatGroupMemberService chatGroupMemberService;
+    private final HttpServletRequest request;
 
     @GetMapping("/page")
     public String getGroup(Model model) {
@@ -43,6 +44,9 @@ public class ChatGroupController {
 
         model.addAttribute("getGroupsUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getPaginatedGroups", "", "", "", "").toUriString());
         model.addAttribute("createGroupUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "createGroup", "").toUriString());
+        model.addAttribute("joinGroupUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "joinGroup", "").toUriString());
+        model.addAttribute("exitGroupUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "exitGroup", "").toUriString());
+        model.addAttribute("getGroupMembersUrl", MvcUriComponentsBuilder.fromMethodName(ChatGroupController.class, "getPaginatedGroupMembers", "", "", "", "", "").toUriString());
 
         return "message/messageGroup";
     }
@@ -66,7 +70,11 @@ public class ChatGroupController {
     // Get paginated and filtered groups
     @GetMapping
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> getPaginatedGroups(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size, @RequestParam(required = false) String search, @RequestParam(required = false, defaultValue = "1") int draw) {
+    public ResponseEntity<Map<String, Object>> getPaginatedGroups(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "1") int draw) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatGroup> groupPage;
@@ -74,10 +82,10 @@ public class ChatGroupController {
         if (search != null && !search.isEmpty()) {
             groupPage = chatGroupService.findByNameContainingIgnoreCase(search, pageable);
         } else {
-            groupPage = chatGroupService.findAll(pageable);
+            groupPage = chatGroupService.findAllActive(pageable);
         }
 
-        List<ChatGroupDto> groupDtos = groupPage.getContent().stream().map(group -> new ChatGroupDto(group.getName(), group.getNumber(), group.getChatGroupMembers().size())).collect(Collectors.toList());
+        List<ChatGroupDto> groupDtos = groupPage.getContent().stream().map(group -> new ChatGroupDto(group.getName(), group.getNumber(), group.getPurpose(), group.getGroupType().getGroupType(), group.getGroupState().getGroupState(), group.getChatGroupMembers().size())).collect(Collectors.toList());
 
 
         Map<String, Object> response = new HashMap<>();
@@ -89,19 +97,25 @@ public class ChatGroupController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/join/{groupNumber}")
-    @ResponseBody
-    public ResponseEntity<String> joinGroup(@PathVariable String groupNumber, Principal principal) {
 
-        var username = principal.getName();
+    @GetMapping("/join/{groupNumber}")
+    @ResponseBody
+    public ResponseEntity<String> joinGroup(@PathVariable String groupNumber) {
+
+        var username = request.getRemoteUser();
         ChatGroup group = chatGroupService.findByNumber(groupNumber);
         var groupMembers = group.getChatGroupMembers();
         boolean alreadyMember = groupMembers.stream().anyMatch(member -> member.getUsername().equals(username));
-
         if (alreadyMember) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("You are already a member of this group. Group Number: " + groupNumber);
+            return ResponseEntity.status(HttpStatus.OK).body("You are already a member of this group. Group Number: " + group.getName());
         }
+        var newMember = getChatGroupMember(group, username, groupMembers);
 
+        chatGroupMemberService.persist(newMember);
+        return ResponseEntity.ok("Joined the group successfully!");
+    }
+
+    private ChatGroupMember getChatGroupMember(ChatGroup group, String username, List<ChatGroupMember> groupMembers) {
         ChatGroupMember newMember = new ChatGroupMember();
         newMember.setChatGroup(group);
         newMember.setUsername(username);
@@ -115,27 +129,51 @@ public class ChatGroupController {
         } else {
             newMember.setMemberType(MemberType.AD);
         }
-
-        chatGroupMemberService.persist(newMember);
-        return ResponseEntity.ok("Joined the group successfully!");
+        return newMember;
     }
 
-    @GetMapping("/{groupId}/members")
+    @GetMapping("/exit/{groupNumber}")
     @ResponseBody
-    public ResponseEntity<Page<ChatGroupMemberDto>> getPaginatedGroupMembers(@PathVariable Long groupId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam(required = false) String search) {
+    public ResponseEntity<String> exitGroup(@PathVariable String groupNumber) {
 
+        var username = request.getRemoteUser();
+        chatGroupMemberService.deleteByGroupAndUsername(groupNumber, username);
+
+        return ResponseEntity.ok("Remove the group successfully!");
+    }
+
+
+    @GetMapping("/members/{groupNumber}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getPaginatedGroupMembers(@PathVariable("groupNumber") String groupNumber,
+                                                                        @RequestParam(defaultValue = "0") int page,
+                                                                        @RequestParam(defaultValue = "5") int size,
+                                                                        @RequestParam(required = false) String search,
+                                                                        @RequestParam(required = false, defaultValue = "1") int draw) {
+        var group = chatGroupService.findByNumber(groupNumber);
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatGroupMember> memberPage;
 
         if (search != null && !search.isEmpty()) {
-            memberPage = chatGroupMemberService.findByChatGroupIdAndUserNameContaining(groupId, search, pageable);
+            memberPage = chatGroupMemberService.findByChatGroupAndUsernameContaining(group, search, pageable);
         } else {
-            memberPage = chatGroupMemberService.findByChatGroupId(groupId, pageable);
+            memberPage = chatGroupMemberService.findByChatGroup(group, pageable);
         }
 
         // Map to DTO
-        Page<ChatGroupMemberDto> memberDtoPage = memberPage.map(member -> new ChatGroupMemberDto(member.getUsername(), member.getChatGroup().getName()));
+        Page<ChatGroupMemberDto> memberDtoPage = memberPage.map(member -> new ChatGroupMemberDto(member.getUsername(), member.getMemberType().getMemberType()));
 
-        return ResponseEntity.ok(memberDtoPage);
+        // Custom response structure instead of serializing Page directly
+        Map<String, Object> response = new HashMap<>();
+        response.put("draw", draw);
+        response.put("recordsTotal", memberPage.getTotalElements());
+        response.put("recordsFiltered", memberPage.getTotalElements());
+        response.put("data", memberDtoPage.getContent());  // Only the content (list of members)
+        response.put("currentPage", memberDtoPage.getNumber());
+        response.put("totalPages", memberDtoPage.getTotalPages());
+        response.put("pageSize", memberDtoPage.getSize());
+
+        return ResponseEntity.ok(response);
     }
+
 }
