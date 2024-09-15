@@ -1,7 +1,7 @@
 package cyou.simple_chat_app.chat.common.controller;
 
 
-import cyou.simple_chat_app.chat.chat_group.controller.ChatGroupController;
+import cyou.simple_chat_app.chat.common.dto.GroupMessageDTO;
 import cyou.simple_chat_app.chat.common.dto.MessageDTO;
 import lombok.AllArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -35,8 +35,8 @@ public class ChatController {
     }
 
     @MessageMapping("/chat.group")
-    public void sendGroupMessage(MessageDTO message) {
-        messagingTemplate.convertAndSend("/topic/group", message);
+    public void sendGroupMessage(GroupMessageDTO message) {
+        messagingTemplate.convertAndSend("/topic/group" + message.getGroupNumber(), message);
     }
 
 

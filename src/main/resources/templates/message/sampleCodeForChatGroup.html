@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Group Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<div>
+  <label>Select Chat Group:</label>
+  <select id="chatGroupSelector">
+    <!-- The user's groups will be dynamically loaded here -->
+  </select>
+</div>
+
+<div>
+  <input id="sender" type="text" placeholder="Your Name"/>
+  <textarea id="messageContent" placeholder="Enter your message"></textarea>
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<div id="chatArea"></div>
+
+<script type="text/javascript">
+  var stompClient = null;
+  var currentGroup = null;  // Track the currently selected group
+  var userGroups = ['group1', 'group2', 'group3'];  // Example list of user's chat groups (can be loaded from the server)
+
+  function connect() {
+    var socket = new SockJS('/ws');
+    stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function(frame) {
+      // Subscribe to each group the user is a member of
+      userGroups.forEach(function(group) {
+        stompClient.subscribe('/topic/group/' + group, function(messageOutput) {
+          showMessage(JSON.parse(messageOutput.body), group);
+        });
+
+        // Add each group to the dropdown
+        $('#chatGroupSelector').append('<option value="' + group + '">' + group + '</option>');
+      });
+
+      // Set the initial group to the first one
+      currentGroup = userGroups[0];
+      $('#chatGroupSelector').val(currentGroup);
+
+      // Handle group selection change
+      $('#chatGroupSelector').on('change', function() {
+        currentGroup = $(this).val();
+        $("#chatArea").empty();  // Clear messages when switching groups
+      });
+    });
+  }
+
+  function sendMessage() {
+    if (stompClient !== null) {
+      var message = {
+        'sender': $("#sender").val(),
+        'content': $("#messageContent").val(),
+        'chatGroupNumber': currentGroup  // Send message to the currently selected group
+      };
+      stompClient.send("/app/chat.group", {}, JSON.stringify(message));
+    }
+  }
+
+  function showMessage(message, group) {
+    // Only show the message if it belongs to the currently selected group
+    if (group === currentGroup) {
+      $("#chatArea").append("<div><strong>" + message.sender + ":</strong> " + message.content + "</div>");
+    }
+  }
+
+  $(document).ready(function () {
+    connect();
+  });
+</script>
+</body>
+</html>
